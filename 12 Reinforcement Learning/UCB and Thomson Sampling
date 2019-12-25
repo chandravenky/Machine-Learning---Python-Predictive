@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec 25 15:45:14 2019
+
+@author: vchan
+"""
+
+# Load libraries
+import pandas as pd
+import random
+import matplotlib.pyplot as plt
+
+#---------------------User input-----------------------
+
+# Import data
+online_ad = pd.read_csv(r"C:\Users\vchan\OneDrive\Documents\UCB vs Thomson\Ads_CTR_Optimisation_kaggle.csv")
+
+#There are 10 ads and a user can click on any one/multiple ads
+#There are 10000 rounds to measure the effectiveness
+
+#-----------------------------------------------------
+#--------------Upper confidence bound-----------------
+#-----------------------------------------------------
+import math
+N = 10000       #number of rounds
+d = 10          #number of ads
+ads_selected = []
+numbers_of_selections = [0] * d
+sums_of_rewards = [0] * d
+total_reward = 0
+for n in range(0, N):
+    ad = 0
+    max_upper_bound = 0
+    for i in range(0, d):
+        if (numbers_of_selections[i] > 0):
+            average_reward = sums_of_rewards[i] / numbers_of_selections[i]
+            delta_i = math.sqrt(3/2 * math.log(n + 1) / numbers_of_selections[i])
+            upper_bound = average_reward + delta_i
+        else:
+            upper_bound = 1e400
+        if upper_bound > max_upper_bound:
+            max_upper_bound = upper_bound
+            ad = i
+    ads_selected.append(ad)
+    numbers_of_selections[ad] = numbers_of_selections[ad] + 1
+    reward = online_ad.values[n, ad]
+    sums_of_rewards[ad] = sums_of_rewards[ad] + reward
+    total_reward = total_reward + reward
+
+# Visualising the results
+
+plt.figure(figsize=[10,8])
+n, bins, patches = plt.hist(x=ads_selected, bins=8, color='#0504aa',alpha=0.7, rwidth=0.85)
+plt.xlabel('Ad #',fontsize=15)
+plt.ylabel('# Selections',fontsize=15)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.ylabel('Frequency',fontsize=15)
+plt.title('Comparison of ad clicks - Upper confidence bound',fontsize=15)
+plt.show()
+
+#-----------------------------------------------------
+#--------------------Thomson Sampling-----------------
+#-----------------------------------------------------
+
+iterations = 10000
+ad_count = 10
+ad_clicked = []
+numbers_of_rewards_1 = [0] * ad_count
+numbers_of_rewards_0 = [0] * ad_count
+total_reward = 0
+for n in range(0, iterations):
+    ad = 0
+    max_random = 0
+    for i in range(0, ad_count):
+        random_beta = random.betavariate(numbers_of_rewards_1[i] + 1, numbers_of_rewards_0[i] + 1)
+        if random_beta > max_random:
+            max_random = random_beta
+            ad = i
+    ad_clicked.append(ad)
+    reward = online_ad.values[n, ad]
+    if reward == 1:
+        numbers_of_rewards_1[ad] = numbers_of_rewards_1[ad] + 1
+    else:
+        numbers_of_rewards_0[ad] = numbers_of_rewards_0[ad] + 1
+    total_reward = total_reward + reward
+
+#Results
+plt.figure(figsize=[10,8])
+n, bins, patches = plt.hist(x=ad_clicked, bins=8, color='#0504aa',alpha=0.7, rwidth=0.85)
+plt.xlabel('Ad #',fontsize=15)
+plt.ylabel('# Selections',fontsize=15)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.ylabel('Frequency',fontsize=15)
+plt.title('Comparison of ad clicks - Thomson Sampling',fontsize=15)
+plt.show()
+
